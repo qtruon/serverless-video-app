@@ -2,7 +2,7 @@
 This is a first project to study on:
 - [x] Lambda Serverless, API Gateway and S3
 - [x] Use SAM to deploy lambda and related resources
-- [] CI process from GitHub to CodePipeline with CodeBuild and CodeDeploy
+- [ ] CI process from GitHub to CodePipeline with CodeBuild and CodeDeploy
 
 ## *Status:*
 - First commit for SAM template deploy works with expected resources
@@ -26,6 +26,7 @@ Runtime:
 - SAM CLI, version 0.43.0
 
 Source structure:
+```
 root
   |_ disney.mp4                                 : sample video file
   |_ lambda
@@ -40,6 +41,7 @@ root
                   |_ video_transcode.py         : main lambda handler here
         |_ template.yaml                        : SAM template for all lambda functions
   |_ website                                    : front-end nodejs app
+```
 
 - To create the dependencies.zip for dependencies layer (as we don't use requirements.txt for each lambda and share the common dependency layer so we don't need to create the virtual environment), create a temporary folder for package installation (ex: packages) then install the needed packages into this folder (check the list of existing modules in AWS and be awared of the version dependencies for awscli) then zip this folder content into the zip file (use the 'dependencies.zip' within the SAM template)
 ```
