@@ -3,6 +3,7 @@ This is a first project to study on:
 - [x] Lambda Serverless, API Gateway and S3
 - [x] Use SAM to deploy lambda and related resources
 - [ ] CI process from GitHub to CodePipeline with CodeBuild and CodeDeploy
+- [ ] Set private Gateway API and access via AWS ClientVPN
 
 ## *Status:*
 - First commit for SAM template deploy works with expected resources
@@ -77,7 +78,13 @@ var configConstants = {
         };
         firebase.initializeApp(firebaseConfig);
 ```
-
+- Install required modules for Nodejs application and start the web (no need to run npm install now as the source code already in runable mode), open browser: http://127.0.0.1:8100/
+```
+cd website
+npm install
+npm start
+```
+- External application like Auth0 and Firebase need to manually configure (refer to resource lesson from ACloudGuru in Lab2 and Lab5)
 
 ## *Resources:*
 Original project from [Serverles for Beginers from ACloudGuru](https://acloud.guru/learn/serverless-for-beginners)
