@@ -99,7 +99,7 @@ var userController = {
 
         this.uiElements.profileButton.click(function (e) {
 
-            var url = that.data.config.apiBaseUrl + '/user-profile';
+            var url = that.data.config.apiBaseUrl + '/get-user-info';
             var accessToken = localStorage.getItem('accessToken');
             var data = {
                 accessToken: accessToken

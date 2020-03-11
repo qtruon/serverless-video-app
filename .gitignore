@@ -1,0 +1,11 @@
+# leave serviceAccountKey.json
+serviceAccountKey.json
+
+# node modules for front end site
+**/node_modules/
+
+# mac OS file
+**/.DS_Store
+
+# no need dependencies.zip
+**/*.zip

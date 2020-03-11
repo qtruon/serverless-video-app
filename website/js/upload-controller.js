@@ -19,7 +19,7 @@ var uploadController = {
 
         this.uiElements.uploadButton.on('change', function (result) {
             var file = $('#upload').get(0).files[0];
-            var requestDocumentUrl = that.data.config.apiBaseUrl + '/s3-upload-link?filename=' + encodeURI(file.name) + '&filetype=' + encodeURI(file.type);
+            var requestDocumentUrl = that.data.config.apiBaseUrl + '/create-presigned-url?filename=' + encodeURI(file.name) + '&filetype=' + encodeURI(file.type);
 
             $.get(requestDocumentUrl, function (data, status) {
                 console.log(data);

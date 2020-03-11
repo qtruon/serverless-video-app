@@ -29,9 +29,10 @@ def handler(event, context):
         'source': video_url
     }
 
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    cred = credentials.Certificate(dir_path + "/serviceAccountKey.json")
-    firebase_admin.initialize_app(cred, { 'databaseURL': os.environ['DATABASE_URL'] })
+    if (not len(firebase_admin._apps)):
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        cred = credentials.Certificate(dir_path + "/serviceAccountKey.json")
+        firebase_admin.initialize_app(cred, { 'databaseURL': os.environ['DATABASE_URL'] })
     root = db.reference()
     root.child('videos').child(unique_key).set(data)
     print("INFO: Added to Firebase: {}".format(video_url))

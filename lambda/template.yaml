@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Magic item retrieval for user, experience and items
+Description: SAM template deploys 5 lambda functions and 2 buckets for video upload, transcoded
 
 Globals:
   Function:
@@ -34,10 +34,13 @@ Resources:
     Properties:
       Name: video-app-api
       StageName: dev
-      Cors:
-        AllowMethods: "'GET'"
-        AllowHeaders: "'Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers, Authorization'" 
-        AllowOrigin: "'*'"
+      Cors: "'*'"
+      DefinitionBody:
+        'Fn::Transform':
+          Name: 'AWS::Include'
+          Parameters:
+            Location: swagger.yaml
+      EndpointConfiguration: REGIONAL
       Auth:
         Authorizers:
           CustomAuthorizer:
@@ -59,10 +62,10 @@ Resources:
       Layers: 
         - !Ref DependenciesLayer      
       MemorySize: 512
-      Role: arn:aws:iam::776765247973:role/lambda-s3-generate-signed-url
+      Role: !ImportValue S3ReadWriteLambdaRole-Arn
       Environment:
         Variables:
-          UPLOAD_BUCKET_NAME: 'qtruon-video-upload'
+          UPLOAD_BUCKET_NAME: 'qtruon-source-video'
       Events:
         CreatePostURLAPI:
           Type: Api
@@ -78,6 +81,8 @@ Resources:
       CodeUri: ./user_info/
       Handler: user_info.handler
       Runtime: python3.8
+      Layers: 
+        - !Ref DependenciesLayer
       MemorySize: 512
       Environment:
         Variables:
@@ -93,19 +98,19 @@ Resources:
   TranscodeVideo:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: video-transcoder
+      FunctionName: video-transcode
       CodeUri: ./video_transcode/
       Handler: video_transcode.handler
       Runtime: python3.8
       Layers: 
         - !Ref DependenciesLayer
       MemorySize: 512
-      Role: arn:aws:iam::776765247973:role/lambda-et-jobsubmitter   # Need to create role
+      Role: !ImportValue TranscodeJobLambdaRole-Arn
       Environment:
         Variables:
           DATABASE_URL: 'https://qtruong-dev.firebaseio.com/'
-          ELASTIC_TRANSCODER_PIPELINE_ID: '1583199044752-5d4m67'
-          ELASTIC_TRANSCODER_REGION: 'us-west-1'  # Change to AWS::Region
+          ELASTIC_TRANSCODER_PIPELINE_ID: '1583199044752-5d4m67'  # Elastic Transcoder is not yet supported by CloudFormation
+          ELASTIC_TRANSCODER_REGION: !Ref AWS::Region
       Events:
         UploadVideoEvent:
           Type: S3
@@ -117,6 +122,17 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: 'qtruon-source-video'
+      CorsConfiguration:
+          CorsRules:
+          -
+            AllowedHeaders: 
+              - '*'
+            AllowedMethods: 
+              - POST
+              - GET
+            AllowedOrigins:
+              - '*'
+            MaxAge: 3000
 
   TranscodedUpdate:
     Type: AWS::Serverless::Function
@@ -147,14 +163,10 @@ Resources:
 
 Outputs:
   VideoApiGateway:
-    Description: API Gateway endpoint URL of dev stage for create presigned url function
-    Value: !Sub 'https://${VideoApiGateway}.execute-api.${AWS::Region}.amazonaws.com/dev/create-presigned-url/'
+    Description: API Gateway endpoint URL of dev stage 
+    Value: !Sub 'https://${VideoApiGateway}.execute-api.${AWS::Region}.amazonaws.com/dev/'
   VideoApiGatewayRestApiId:
     Description: API Gateway ARN for AWS API Gateway
     Value: !Ref VideoApiGateway
     Export:
       Name: VideoApiGateway-RestApiId
-  VideoApiGatewayRootResourceId:
-    Value: !GetAtt VideoApiGateway.RootResourceId
-    Export:
-      Name: VideoApiGateway-RootResourceId

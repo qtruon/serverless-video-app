@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Setup based CI/CD environment, run once for initial setup
+
+Resources:
+  SAMDeployBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: 'qtruon-sam-deploy'
+
+  TranscodeJobLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: 'lambda-transcode-job'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AWSLambdaExecute
+      - arn:aws:iam::aws:policy/AmazonElasticTranscoder_JobsSubmitter
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: sts:AssumeRole
+          Principal:
+            Service: lambda.amazonaws.com
+  
+  S3ReadWriteLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: 'lambda-s3-generate-signed-url'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AWSLambdaExecute
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: sts:AssumeRole
+          Principal:
+            Service: lambda.amazonaws.com
+      Policies:
+      - PolicyName: 'S3ReadWritePolicy'
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            - s3:GetPutPbject
+            Resource: '*'
+
+Outputs:
+  TranscodeRoleArn:
+    Description: Submit transcode job for lambda service
+    Value: !GetAtt [TranscodeJobLambdaRole, Arn]
+    Export:
+      Name: TranscodeJobLambdaRole-Arn
+  S3UrlRoleArn:
+    Description: S3 Write role for lambda service
+    Value: !GetAtt [S3ReadWriteLambdaRole, Arn]
+    Export:
+      Name: S3ReadWriteLambdaRole-Arn

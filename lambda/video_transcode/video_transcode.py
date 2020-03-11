@@ -44,8 +44,9 @@ def handler(event, context):
 
 
 def addVideoEntryToDb(key):
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    cred = credentials.Certificate(dir_path + "/serviceAccountKey.json")
-    firebase_admin.initialize_app(cred, { 'databaseURL': os.environ['DATABASE_URL'] })
+    if (not len(firebase_admin._apps)):
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        cred = credentials.Certificate(dir_path + "/serviceAccountKey.json")
+        firebase_admin.initialize_app(cred, { 'databaseURL': os.environ['DATABASE_URL'] })
     root = db.reference()
     return root.child('videos').child(key).set({ 'transcoding': True })
