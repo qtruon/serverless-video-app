@@ -6,15 +6,15 @@ This is a first project to study on:
 - [ ] Set private Gateway API and access via AWS ClientVPN
 
 ## *Status:*
-- First commit for SAM template deploy works with expected resources
-- Not yet testing on the application
+- Test and fix SAM template to make the app can run
+- Adjust SAM template for CORS configs on API Gateway and S3
+- Create CloudFormation template for related resources (SAM deploy bucket, lambda roles ...)
+- Remove `requirements.txt` because we don't need `sam build` as we use layer for dependencies
 
 ## *Next Steps:*
-- Run application test
 - Create Method request query string and header in API gateway
 - Refine SAM template to use System Management Parameters Store
 - Create CodePipeline and deploy application via CodeBuild and CodeDeploy
-- Create CloudFormation template for other resources (if needed)
 - Integrate the website (not in scope of study) into the deployment into S3 hosted
 - Add function to view video by presigned url (limitation of Isengard not able to public S3 bucket)
 
@@ -37,22 +37,24 @@ root
         |_ update_transcode                     : post transcode update status to Firebase DB
         |_ user_info                            : get user profile information
         |_ video_transcode                      : upload video to S3 then create transcode job and DB record
-                  |_ requirements.txt           : **each** lambda has to have this manifest for SAM build (???)
-                  |_ serviceAccountKey.json     : service account credential to Firebase DB
+                  |_ serviceAccountKey.json     : service account credential to Firebase DB (skip this out of git)
                   |_ video_transcode.py         : main lambda handler here
+        |_ env_prep.yaml                        : CloudFormation template for other resources
+        |_ swagger.yaml                         : Swagger configuration for API Gateway CORS
         |_ template.yaml                        : SAM template for all lambda functions
   |_ website                                    : front-end nodejs app
 ```
 
-- To create the dependencies.zip for dependencies layer (as we don't use requirements.txt for each lambda and share the common dependency layer so we don't need to create the virtual environment), create a temporary folder for package installation (ex: packages) then install the needed packages into this folder (check the list of existing modules in AWS and be awared of the version dependencies for awscli) then zip this folder content into the zip file (use the 'dependencies.zip' within the SAM template)
+- To create the dependencies.zip for dependencies layer, create a temporary folder for package installation (ex: packages/python/lib/python3.8/site-packages, refer Resource#3) then install the needed packages into this folder (check the list of existing modules in AWS and be awared of the version dependencies for awscli) then zip this folder content into the zip file (use the 'dependencies.zip' within the SAM template)
 ```
-mkdir ./packages
+mkdir ./packages/python/lib/python3.8/site-packages
 pip3 install -t ./packages rsa==3.4.2 requests==2.22.0 python-dateutil==2.8.0 firebase-admin python-jose
-zip -r9 ./dependencies/dependencies.zip ./packages/*
+cd ./packages
+zip -r9 ../dependencies/dependencies.zip .
 ```
-- Create sam build and sam deploy (not sure if we need sam build because we use layer for all dependencies), make sure have the deployment bucket to let sam upload the packages for deployment process (ex: video-app-sam-deploy)
+- Prepare the environment such as the sam deployment bucket with CloudFormation (we crete IAM role in this template so need CAPABILITY_NAMED_IAM) then use sam deploy which will refer to the roles created in the CloudFormation template
 ```
-sam build
+aws cloudformation create-stack --stack-name video-env-stack --template-body file://env_prep.yaml --capabilities CAPABILITY_NAMED_IAM
 sam deploy --s3-bucket video-app-sam-deploy --stack-name video-app-stack --capabilities CAPABILITY_IAM
 ```
 - Update the Auth0 information and the Gateway API into website/js/config.js
@@ -78,7 +80,7 @@ var configConstants = {
         };
         firebase.initializeApp(firebaseConfig);
 ```
-- Install required modules for Nodejs application and start the web (no need to run npm install now as the source code already in runable mode), open browser: http://127.0.0.1:8100/
+- Install required modules for Nodejs application and start the web, open browser: http://127.0.0.1:8100/
 ```
 cd website
 npm install
@@ -90,28 +92,28 @@ npm start
 Original project from [Serverles for Beginers from ACloudGuru](https://acloud.guru/learn/serverless-for-beginners)
 
 Convert the lambda serverless function into Pyhton: 
-  - Refer to [boto3 module](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/quickstart.html) for aws client object
+  1. Refer to [boto3 module](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/quickstart.html) for aws client object
 
-  - How to [deploy Python lambda packages (manual)](https://docs.aws.amazon.com/lambda/latest/dg/python-package.html)
+  2. How to [deploy Python lambda packages](https://docs.aws.amazon.com/lambda/latest/dg/python-package.html) (manual)
 
-  - Use [Library Dependencies in a Layer](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html#configuration-layers-manage) or read this [thread](https://towardsdatascience.com/introduction-to-amazon-lambda-layers-and-boto3-using-python3-39bd390add17)
+  3. Use [Library Dependencies in a Layer](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html#configuration-layers-manage) or read this [thread](https://towardsdatascience.com/introduction-to-amazon-lambda-layers-and-boto3-using-python3-39bd390add17)
 
-  - Refer to this [existing modules list in AWS lambda](https://gist.github.com/gene1wood/4a052f39490fae00e0c3#file-all_aws_lambda_modules_python-md) to reduce the dependencies package when deploy
+  4. Refer to this [existing modules list in AWS lambda](https://gist.github.com/gene1wood/4a052f39490fae00e0c3#file-all_aws_lambda_modules_python-md) to reduce the dependencies package when deploy
 
-  - [Best practices for error handling in Python](https://stackoverflow.com/questions/2052390/manually-raising-throwing-an-exception-in-python)
+  5. [Best practices for error handling in Python](https://stackoverflow.com/questions/2052390/manually-raising-throwing-an-exception-in-python)
 
 Deploy lambda with SAM
-  - [Package and deploy using SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-deploying.html)
+  6. [Package and deploy using SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-deploying.html)
 
-  - [SAM template documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html)
+  7. [SAM template documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html)
 
-  - Create [custom authorizer for API Gateway](https://medium.com/carsales-dev/api-gateway-with-aws-sam-template-c05afdd9cafe) via SAM template (also create API Gateway + method attach lambda)
+  8. Create [custom authorizer for API Gateway](https://medium.com/carsales-dev/api-gateway-with-aws-sam-template-c05afdd9cafe) via SAM template (also create API Gateway + method attach lambda)
 
-  - Create [lambda event trigger by S3](https://docs.aws.amazon.com/lambda/latest/dg/with-s3-example-use-app-spec.html) via SAM template
+  9. Create [lambda event trigger by S3](https://docs.aws.amazon.com/lambda/latest/dg/with-s3-example-use-app-spec.html) via SAM template
   
-  - [Custom role, policy for lambda](https://aws.amazon.com/premiumsupport/knowledge-center/lambda-sam-template-permissions/) via SAM template
+  10 [Custom role, policy for lambda](https://aws.amazon.com/premiumsupport/knowledge-center/lambda-sam-template-permissions/) via SAM template
   
 CloudFormation documentation which is used by SAM template
-  - [CloudFormation documentation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/AWS_ApiGateway.html)
+  11. [CloudFormation documentation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/AWS_ApiGateway.html)
 
-  - Detail [samples for API Gateway](https://blog.jayway.com/2016/08/17/introduction-to-cloudformation-for-api-gateway/) via CloudFormation
+  12. Detail [samples for API Gateway](https://blog.jayway.com/2016/08/17/introduction-to-cloudformation-for-api-gateway/) via CloudFormation
