@@ -1,0 +1,13 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      docker: 18
+      python: 3.8
+    commands:
+    - python3 -m pip install --upgrade
+  build:
+    commands:
+    - |
+      echo "===== Running Deploy ====="
+      sam deploy --template-file template.yaml --s3-bucket qtruon-deploy-bucket --stack-name video-app-stack --capabilities CAPABILITY_IAM --parameter-overrides EnvType=dev

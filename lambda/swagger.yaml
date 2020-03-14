@@ -7,6 +7,15 @@ info:
 paths:
   /get-user-info:
     get:
+      parameters:
+        - in: query
+          name: accessToken
+          schema:
+            type: string
+        - in: header
+          name: Authorization
+          schema:
+            type: string
       responses:
         200:
           description: 200 response
@@ -57,6 +66,19 @@ paths:
         type: mock
   /create-presigned-url:
     get:
+      parameters:
+        - in: query
+          name: filename
+          schema:
+            type: string
+        - in: query
+          name: filetype
+          schema:
+            type: string
+        - in: header
+          name: Authorization
+          schema:
+            type: string
       responses:
         200:
           description: 200 response

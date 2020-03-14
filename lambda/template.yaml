@@ -3,17 +3,59 @@ Transform: AWS::Serverless-2016-10-31
 Description: SAM template deploys 5 lambda functions and 2 buckets for video upload, transcoded
 
 Globals:
+  Api:
+    OpenApiVersion: 3.0.1
   Function:
     Timeout: 30
+
+Parameters:
+  EnvType:
+    Type: String
+    AllowedValues:
+    - prod
+    - dev
+    Default: dev
+
+Conditions:
+  CreateProdEnv: !Equals [!Ref EnvType, prod]
+
+Mappings:
+  DevEnvVars:
+    Auth0Domain:
+      Name: 'qtruong-dev.auth0.com'
+    UploadBucket:
+      Name: 'qtruon-upload-video'
+    TranscodedBucket:
+      Name: 'qtruon-transcoded-video'
+    TranscodedBucketUrl:
+      Name: 'https://s3.amazonaws.com/qtruon-transcoded-video'
+    DatabaseUrl:
+      Name: 'https://qtruong-dev.firebaseio.com/'
+    TranscodePipelineId:
+      Name: '1583199044752-5d4m67'  # Elastic Transcoder is not yet supported by CloudFormation
+  ProdEnvVars:
+    Auth0Domain:
+      Name: 'qtruong-dev.auth0.com'
+    UploadBucket:
+      Name: 'qtruon-upload-video'
+    TranscodedBucket:
+      Name: 'qtruon-transcoded-video'
+    TranscodedBucketUrl:
+      Name: 'https://s3.amazonaws.com/qtruon-transcoded-video'
+    DatabaseUrl:
+      Name: 'https://qtruong-dev.firebaseio.com/'
+    TranscodePipelineId:
+      Name: '1583199044752-5d4m67'  # Elastic Transcoder is not yet supported by CloudFormation
+    
 Resources:
   DependenciesLayer:
-        Type: AWS::Serverless::LayerVersion
-        Properties:
-            LayerName: DependenciesLayer
-            Description: dependency layer
-            ContentUri: dependencies/dependencies.zip
-            CompatibleRuntimes: 
-              - python3.8
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+        LayerName: DependenciesLayer
+        Description: dependency layer
+        ContentUri: dependencies/dependencies.zip
+        CompatibleRuntimes: 
+          - python3.8
 
   UserAuthorizer:
     Type: AWS::Serverless::Function
@@ -27,13 +69,13 @@ Resources:
       MemorySize: 512
       Environment:
         Variables:
-          AUTH0_DOMAIN: 'qtruong-dev.auth0.com'   # Move all variables into Params Store
+          AUTH0_DOMAIN: !If [CreateProdEnv, !FindInMap [ProdEnvVars, Auth0Domain, Name], !FindInMap [DevEnvVars, Auth0Domain, Name]]
 
   VideoApiGateway:
     Type: AWS::Serverless::Api
     Properties:
       Name: video-app-api
-      StageName: dev
+      StageName: !Ref EnvType
       Cors: "'*'"
       DefinitionBody:
         'Fn::Transform':
@@ -65,7 +107,7 @@ Resources:
       Role: !ImportValue S3ReadWriteLambdaRole-Arn
       Environment:
         Variables:
-          UPLOAD_BUCKET_NAME: 'qtruon-source-video'
+          UPLOAD_BUCKET_NAME: !If [CreateProdEnv, !FindInMap [ProdEnvVars, UploadBucket, Name], !FindInMap [DevEnvVars, UploadBucket, Name]]
       Events:
         CreatePostURLAPI:
           Type: Api
@@ -86,7 +128,7 @@ Resources:
       MemorySize: 512
       Environment:
         Variables:
-          AUTH0_DOMAIN: 'qtruong-dev.auth0.com'
+          AUTH0_DOMAIN: !If [CreateProdEnv, !FindInMap [ProdEnvVars, Auth0Domain, Name], !FindInMap [DevEnvVars, Auth0Domain, Name]]
       Events:
         GetUserInfoAPI:
           Type: Api
@@ -108,8 +150,8 @@ Resources:
       Role: !ImportValue TranscodeJobLambdaRole-Arn
       Environment:
         Variables:
-          DATABASE_URL: 'https://qtruong-dev.firebaseio.com/'
-          ELASTIC_TRANSCODER_PIPELINE_ID: '1583199044752-5d4m67'  # Elastic Transcoder is not yet supported by CloudFormation
+          DATABASE_URL: !If [CreateProdEnv, !FindInMap [ProdEnvVars, DatabaseUrl, Name], !FindInMap [DevEnvVars, DatabaseUrl, Name]]
+          ELASTIC_TRANSCODER_PIPELINE_ID: !If [CreateProdEnv, !FindInMap [ProdEnvVars, TranscodePipelineId, Name], !FindInMap [DevEnvVars, TranscodePipelineId, Name]]
           ELASTIC_TRANSCODER_REGION: !Ref AWS::Region
       Events:
         UploadVideoEvent:
@@ -121,7 +163,7 @@ Resources:
   SourceBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: 'qtruon-source-video'
+      BucketName: !If [CreateProdEnv, !FindInMap [ProdEnvVars, UploadBucket, Name], !FindInMap [DevEnvVars, UploadBucket, Name]]
       CorsConfiguration:
           CorsRules:
           -
@@ -146,8 +188,8 @@ Resources:
       MemorySize: 512
       Environment:
         Variables:
-          DATABASE_URL: 'https://qtruong-dev.firebaseio.com/'
-          S3_TRANSCODED_BUCKET_URL: 'https://s3.amazonaws.com/qtruon-video-transcoded'
+          DATABASE_URL: !If [CreateProdEnv, !FindInMap [ProdEnvVars, DatabaseUrl, Name], !FindInMap [DevEnvVars, DatabaseUrl, Name]]
+          S3_TRANSCODED_BUCKET_URL: !If [CreateProdEnv, !FindInMap [ProdEnvVars, TranscodedBucketUrl, Name], !FindInMap [DevEnvVars, TranscodedBucketUrl, Name]]
       Events:
         VideoUploadEvent:
           Type: S3
@@ -158,7 +200,7 @@ Resources:
   TargetBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: 'qtruon-target-video'
+      BucketName: !If [CreateProdEnv, !FindInMap [ProdEnvVars, TranscodedBucket, Name], !FindInMap [DevEnvVars, TranscodedBucket, Name]]
 
 
 Outputs:

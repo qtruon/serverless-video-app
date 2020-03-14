@@ -1,11 +1,24 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Setup based CI/CD environment, run once for initial setup
 
+Mappings:
+  GithubConnection:
+    GitHubOwner:
+      Name: 'qtruon'
+    GitHubRepo:
+      Name: 'serverless-video-app'
+    GitHubBranch:
+      Name: 'master'
+    GitHubOAuth:
+      Name: '{{resolve:secretsmanager:GitHubOAuthToken:SecretString:GitHubOAuth}}'
+  Environment:
+    DeploymentBucket:
+      Name: 'qtruon-sam-deploy'
 Resources:
-  SAMDeployBucket:
+  DeployBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: 'qtruon-sam-deploy'
+      BucketName: 'qtruon-deploy-bucket'
 
   TranscodeJobLambdaRole:
     Type: AWS::IAM::Role
@@ -44,6 +57,94 @@ Resources:
             - s3:GetObject
             - s3:GetPutPbject
             Resource: '*'
+
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: 'video-app-build-project'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AdministratorAccess   # refine to least priviledge later 
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: sts:AssumeRole
+          Principal:
+            Service: codebuild.amazonaws.com
+
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: 'video-app-pipeline'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AdministratorAccess   # refine to least priviledge later
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: 'video-build-project'
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: buildspec.yml
+        InsecureSsl: false
+      Artifacts:
+        Type: CODEPIPELINE
+      Cache:
+        Type: NO_CACHE
+      Environment:
+        Type: LINUX_CONTAINER
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:2.0
+        ComputeType: BUILD_GENERAL1_MEDIUM
+      TimeoutInMinutes: 60
+      ServiceRole: !Ref CodeBuildRole
+
+  CodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location: !Ref DeployBucket
+      RestartExecutionOnUpdate: true
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      Stages:
+      - Name: GitHubSource
+        Actions:
+        - Name: Source
+          InputArtifacts: []
+          ActionTypeId:
+            Category: Source
+            Owner: ThirdParty
+            Version: 1
+            Provider: GitHub
+          OutputArtifacts:
+          - Name: SourceCode
+          Configuration:
+            Owner: !FindInMap [GithubConnection, GitHubOwner, Name]
+            Repo: !FindInMap [GithubConnection, GitHubRepo, Name]
+            Branch: !FindInMap [GithubConnection, GitHubBranch, Name]
+            OAuthToken: !FindInMap [GithubConnection, GitHubOAuth, Name]
+            PollForSourceChanges: false
+          RunOrder: 1
+      - Name: Build
+        Actions:
+          - Name: Build
+            ActionTypeId:
+              Category: Build
+              Owner: AWS
+              Provider: CodeBuild
+              Version: '1'
+            Configuration:
+              ProjectName: !Ref CodeBuildProject
+            InputArtifacts:
+              - Name: SourceCode
+            RunOrder: 1
 
 Outputs:
   TranscodeRoleArn:
