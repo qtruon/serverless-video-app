@@ -93,7 +93,6 @@ npm start
 ## *Resources:*
 Original project from [Serverles for Beginers from ACloudGuru](https://acloud.guru/learn/serverless-for-beginners)
 
-Convert the lambda serverless function into Pyhton: 
   1. Refer to [boto3 module](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/quickstart.html) for aws client object
   2. How to [deploy Python lambda packages](https://docs.aws.amazon.com/lambda/latest/dg/python-package.html) (manual)
   3. Use [Library Dependencies in a Layer](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html#configuration-layers-manage) or read this [thread](https://towardsdatascience.com/introduction-to-amazon-lambda-layers-and-boto3-using-python3-39bd390add17)
@@ -105,15 +104,9 @@ Deploy lambda with SAM
   8. Create [custom authorizer for API Gateway](https://medium.com/carsales-dev/api-gateway-with-aws-sam-template-c05afdd9cafe) via SAM template (also create API Gateway + method attach lambda)
   9. Create [lambda event trigger by S3](https://docs.aws.amazon.com/lambda/latest/dg/with-s3-example-use-app-spec.html) via SAM template
   10. [Custom role, policy for lambda](https://aws.amazon.com/premiumsupport/knowledge-center/lambda-sam-template-permissions/) via SAM template
-  
-CloudFormation documentation which is used by SAM template
   11. [CloudFormation documentation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/AWS_ApiGateway.html)
   12. Detail [samples for API Gateway](https://blog.jayway.com/2016/08/17/introduction-to-cloudformation-for-api-gateway/) via CloudFormation
-
-Integrate with GitHub
   13. [GitHub authentication](https://docs.aws.amazon.com/codepipeline/latest/userguide/GitHub-authentication.html)
-  
-Some interesting refs
   14. How to [get stack output via CLI](https://stackoverflow.com/questions/51686580/how-to-get-stack-output-from-aws-sam)
   15. SAM deploy will always create 'Stage' stage, [how to eleminate this stage](https://github.com/awslabs/serverless-application-model/issues/191)
   16. [Using Secrets Manager with CloudFormation](https://docs.amazonaws.cn/en_us/AWSCloudFormation/latest/UserGuide/dynamic-references.html)
